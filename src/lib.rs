@@ -1,6 +1,3 @@
-#![allow(incomplete_features)]
-#![feature(box_syntax, const_generics, fixed_size_array)]
-
 //! *[JSON Web Key (JWK)](https://tools.ietf.org/html/rfc7517#section-4.3) (de)serialization, generation, and conversion.*
 //!
 //! **Note**: this crate requires Rust nightly >= 1.45 because it uses
@@ -58,6 +55,9 @@
 //!                This pulls in the [p256](https://crates.io/crates/p256) and [rand](https://crates.io/crates/rand) crates.
 //! * `jsonwebtoken` - enables conversions to types in the [jsonwebtoken](https://crates.io/crates/jsonwebtoken) crate.
 
+#[macro_use]
+extern crate generic_array;
+
 mod byte_array;
 mod byte_vec;
 mod key_ops;
@@ -72,6 +72,8 @@ use serde::{Deserialize, Serialize};
 pub use byte_array::ByteArray;
 pub use byte_vec::ByteVec;
 pub use key_ops::KeyOps;
+
+use generic_array::typenum::U32;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JsonWebKey {
@@ -94,7 +96,7 @@ pub struct JsonWebKey {
 impl JsonWebKey {
     pub fn new(key: Key) -> Self {
         Self {
-            key: box key,
+            key: Box::new(key),
             key_use: None,
             key_ops: KeyOps::empty(),
             key_id: None,
@@ -404,11 +406,11 @@ pub enum Curve {
     P256 {
         /// The private scalar.
         #[serde(skip_serializing_if = "Option::is_none")]
-        d: Option<ByteArray<32>>,
+        d: Option<ByteArray<U32>>,
         /// The curve point x coordinate.
-        x: ByteArray<32>,
+        x: ByteArray<U32>,
         /// The curve point y coordinate.
-        y: ByteArray<32>,
+        y: ByteArray<U32>,
     },
 }
 
@@ -524,7 +526,9 @@ const _IMPL_JWT_CONVERSIONS: () = {
 
         pub fn to_decoding_key(&self) -> jwt::DecodingKey<'static> {
             match self {
-                Self::Symmetric { key } => jwt::DecodingKey::from_secret(key).into_static(),
+                Self::Symmetric { key } => {
+                    jwt::DecodingKey::from_secret(key.0.as_slice()).into_static()
+                }
                 Self::EC { .. } => {
                     // The following will not panic: all EC JWKs have public components due to
                     // typing. PEM conversion will always succeed, for the same reason.
