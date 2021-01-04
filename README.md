@@ -6,7 +6,7 @@
 
 *[JSON Web Key (JWK)](https://tools.ietf.org/html/rfc7517#section-4.3) (de)serialization, generation, and conversion.*
 
-Note: requires rustc nightly >= 1.45 for conveniences around fixed-size arrays.
+Note: requires minimum Rust version of 1.36.0, or 1.41.0 (see : https://github.com/fizyk20/generic-array)
 
 **Goals**
 
